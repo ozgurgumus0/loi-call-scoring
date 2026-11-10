@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LOI — Data Explorer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='20' font-size='22'%3E📊%3C/text%3E%3C/svg%3E"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07071a;
+      --card:      #10102a;
+      --card-2:    #16164a;
+      --border:    #2a2a5a;
+      --border-2:  #3a3a7a;
+      --accent:    #f97316;
+      --accent-hi: #fb923c;
+      --green:     #10b981;
+      --green-bg:  rgba(16,185,129,0.12);
+      --yellow:    #eab308;
+      --yellow-bg: rgba(234,179,8,0.12);
+      --blue:      #60a5fa;
+      --blue-bg:   rgba(96,165,250,0.12);
+      --red:       #ef4444;
+      --red-bg:    rgba(239,68,68,0.12);
+      --gray:      #6b7280;
+      --gray-bg:   rgba(107,114,128,0.12);
+      --text:      #e2e8f0;
+      --text-sub:  #94a3b8;
+      --muted:     #64748b;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    body {
+      min-height: 100vh;
+      padding: 24px 16px 80px;
+      background-image: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(249,115,22,0.10), transparent);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hi); }
+
+    /* ── Top bar ─────────────────────────── */
+    .topbar {
+      width: 100%; max-width: 1280px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .topbar .left { display: flex; align-items: center; gap: 14px; }
+    .topbar .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #c2410c, var(--accent));
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 18px rgba(249,115,22,0.32);
+    }
+    .topbar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .topbar p { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .nav { display: flex; gap: 8px; }
+    .nav a {
+      padding: 7px 14px; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-sub); font-size: 13px;
+    }
+    .nav a:hover { background: var(--card-2); color: var(--text); border-color: var(--border-2); }
+    .nav a.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .grid { width: 100%; max-width: 1280px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Summary cards ─────────────────────── */
+    .summary {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .stat-card .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-sub); }
+    .stat-card .v { font-size: 26px; font-weight: 700; margin-top: 6px; }
+    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .stat-card.genesys .v { color: var(--blue); }
+    .stat-card.zoom .v    { color: var(--yellow); }
+    .stat-card.scored .v  { color: var(--green); }
+
+    /* ── Source breakdown bar ─────────────── */
+    .breakdown {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 760px) { .breakdown { grid-template-columns: 1fr; } }
+    .type-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .type-table th, .type-table td {
+      padding: 8px 10px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .type-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+    .type-table td:last-child, .type-table th:last-child { text-align: right; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-genesys { background: var(--blue-bg); color: var(--blue); }
+    .badge-zoom    { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-empty   { background: var(--gray-bg); color: var(--muted); }
+    .badge-scored  { background: var(--green-bg); color: var(--green); }
+    .badge-noscore { background: var(--gray-bg); color: var(--muted); }
+    /* outcome-coloured badges */
+    .badge-out-Freddo          { background: var(--red-bg);    color: var(--red); }
+    .badge-out-Tiepido         { background: rgba(249,115,22,0.12); color: #f97316; }
+    .badge-out-Calduccio       { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-out-Caldo           { background: var(--green-bg);  color: var(--green); }
+    .badge-out-NonInteressato  { background: var(--gray-bg);   color: var(--text-sub); }
+    .badge-out-NonIdoneo       { background: var(--gray-bg);   color: var(--muted); }
+
+    /* Outcome distribution card */
+    .outcome-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .outcome-tile {
+      background: var(--card-2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      border-left: 4px solid var(--border-2);
+    }
+    .outcome-tile .nm { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-sub); }
+    .outcome-tile .ct { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .outcome-tile .pc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .outcome-tile.Freddo         { border-left-color: var(--red); }
+    .outcome-tile.Tiepido        { border-left-color: var(--orange); }
+    .outcome-tile.Calduccio      { border-left-color: var(--yellow); }
+    .outcome-tile.Caldo          { border-left-color: var(--green); }
+    .outcome-tile.NonInteressato,
+    .outcome-tile.NonIdoneo      { border-left-color: var(--muted); }
+
+    /* ── Daily chart (stacked bars) ─────── */
+    .chart {
+      display: grid;
+      grid-template-columns: repeat({{ stats.series | length if stats.series else 1 }}, minmax(8px, 1fr));
+      gap: 2px;
+      align-items: end;
+      height: 160px;
+      padding-top: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chart .col {
+      display: flex; flex-direction: column-reverse;
+      height: 100%; position: relative; cursor: default;
+    }
+    .chart .seg-genesys { background: var(--blue); width: 100%; }
+    .chart .seg-zoom    { background: var(--yellow); width: 100%; }
+    .chart .col:hover .tooltip { display: block; }
+    .chart .tooltip {
+      display: none; position: absolute; top: -34px; left: 50%;
+      transform: translateX(-50%); white-space: nowrap;
+      background: #0a0a23; border: 1px solid var(--border-2);
+      color: var(--text); font-size: 11px; padding: 4px 8px;
+      border-radius: 5px; z-index: 5;
+    }
+    .chart-x {
+      display: flex; justify-content: space-between;
+      margin-top: 4px; font-size: 11px; color: var(--muted);
+    }
+    .chart-legend {
+      display: flex; gap: 14px; margin-bottom: 10px; font-size: 12px;
+    }
+    .chart-legend .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+    /* ── Filters ───────────────────────────── */
+    .filters {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(8, 1fr);
+      align-items: end;
+    }
+    @media (max-width: 1200px) { .filters { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 700px)  { .filters { grid-template-columns: 1fr 1fr; } }
+    .filters .field label {
+      display: block; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--text-sub); margin-bottom: 5px;
+    }
+    select, input[type="text"], input[type="date"] {
+      width: 100%; padding: 8px 9px;
+      background: #0a0a23; color: var(--text);
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13px; font-family: inherit;
+      color-scheme: dark;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Table ─────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    .data-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+      min-width: 1100px;
+    }
+    .data-table th {
+      position: sticky; top: 0; background: var(--card);
+      padding: 10px 8px; text-align: left;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-sub); font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 8px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .data-table tr:hover td { background: rgba(249,115,22,0.04); }
+    .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .data-table code { font-size: 12px; color: var(--text-sub); }
+
+    .pager {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 14px; font-size: 13px; color: var(--text-sub);
+    }
+    .pager .btns { display: flex; gap: 6px; }
+    .pager button {
+      padding: 6px 12px;
+      background: var(--card-2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 7px;
+      cursor: pointer; font-size: 13px;
+    }
+    .pager button:hover:not(:disabled) { background: var(--border); }
+    .pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="left">
+      <div class="logo-icon">📊</div>
+      <div>
+        <h1>Data Explorer</h1>
+        <p>Calls corpus · {{ stats.total if not stats.empty else 0 }} rows</p>
+      </div>
+    </div>
+    <div class="nav">
+      <a href="/">Score</a>
+      <a href="/data" class="active">Data</a>
+    </div>
+  </div>
+
+  <div class="grid">
+
+  {% if stats.empty %}
+    <div class="card">
+      <div class="card-title">No data</div>
+      <div>
+        <code>data/calls.csv</code> is empty or missing.
+        Fetch some calls from the <a href="/">Score page</a> to populate it.
+      </div>
+    </div>
+  {% else %}
+
+  <!-- ── Summary cards ──────────────────────── -->
+  <div class="summary">
+    <div class="stat-card">
+      <div class="k">Total calls</div>
+      <div class="v">{{ "{:,}".format(stats.total) }}</div>
+      <div class="sub">{{ stats.date_min }} → {{ stats.date_max }}</div>
+    </div>
+    <div class="stat-card genesys">
+      <div class="k">Genesys</div>
+      <div class="v">{{ "{:,}".format(stats.by_source.get('genesys', 0)) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.by_source.get('genesys', 0) / stats.total) }}%</div>
+    </div>
+    <div class="stat-card zoom">
+      <div class="k">Zoom</div>
+      <div class="v">{{ "{:,}".format(stats.by_source.get('zoom', 0)) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.by_source.get('zoom', 0) / stats.total) }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="k">Has audio</div>
+      <div class="v">{{ "{:,}".format(stats.with_audio) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.with_audio / stats.total) }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="k">Has transcript</div>
+      <div class="v">{{ "{:,}".format(stats.with_transcript) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.with_transcript / stats.total) }}%</div>
+    </div>
+    <div class="stat-card scored">
+      <div class="k">Scored</div>
+      <div class="v">{{ "{:,}".format(stats.scored) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.scored / stats.total) }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="k">Has rep LOI</div>
+      <div class="v">{{ "{:,}".format(stats.with_label) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.with_label / stats.total) }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="k">Has conversion</div>
+      <div class="v">{{ "{:,}".format(stats.with_conversion) }}</div>
+      <div class="sub">{{ "%.1f"|format(100 * stats.with_conversion / stats.total) }}%</div>
+    </div>
+  </div>
+
+  <!-- ── Audio on disk ──────────────────────── -->
+  <div class="card">
+    <div class="card-title">Audio on disk</div>
+    {% if audio.empty %}
+      <div style="color: var(--text-sub); font-size: 13px;">
+        No audio files found in any of: <code>{{ audio.roots | join('</code>, <code>') | safe }}</code>.
+        Use the Fetch panel on the Score page to pull some.
+      </div>
+    {% else %}
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 14px;">
+        <div class="stat-card">
+          <div class="k">Files on disk</div>
+          <div class="v">{{ "{:,}".format(audio.total_count) }}</div>
+          <div class="sub">{{ "%.2f"|format(audio.total_gb) }} GB total</div>
+        </div>
+        <div class="stat-card genesys">
+          <div class="k">Genesys (.webm)</div>
+          <div class="v">{{ "{:,}".format(audio.by_source.genesys.count) }}</div>
+          <div class="sub">
+            {% if stats.audio_window.genesys.n %}
+              {{ stats.audio_window.genesys.min }} → {{ stats.audio_window.genesys.max }}
+            {% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="stat-card zoom">
+          <div class="k">Zoom (.m4a)</div>
+          <div class="v">{{ "{:,}".format(audio.by_source.zoom.count) }}</div>
+          <div class="sub">
+            {% if stats.audio_window.zoom.n %}
+              {{ stats.audio_window.zoom.min }} → {{ stats.audio_window.zoom.max }}
+            {% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="k">Downloaded between</div>
+          <div class="v" style="font-size: 16px; font-weight: 600;">{{ audio.mtime_min }}</div>
+          <div class="sub">latest: {{ audio.mtime_max }}</div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--muted);">
+        Storage root{{ 's' if audio.roots|length > 1 else '' }}:
+        {% for r in audio.roots %}<code style="margin-right: 8px;">{{ r }}</code>{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Breakdown by source × call_type ───── -->
+  <div class="card">
+    <div class="card-title">Where audio came from (source × call type)</div>
+    <div class="breakdown">
+      <table class="type-table">
+        <thead><tr><th>Source</th><th>Call type</th><th>Count</th><th>%</th></tr></thead>
+        <tbody>
+          {% for row in stats.by_type %}
+          <tr>
+            <td><span class="badge badge-{{ row.source }}">{{ row.source }}</span></td>
+            <td>{{ row.type if row.type != '—' else '<em style="color:var(--muted)">(unset)</em>' | safe }}</td>
+            <td class="num">{{ "{:,}".format(row.count) }}</td>
+            <td class="num" style="color: var(--text-sub);">{{ "%.1f"|format(100*row.count/stats.total) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <table class="type-table">
+        <thead><tr><th>Top reps / hosts (by call count)</th><th>Calls</th></tr></thead>
+        <tbody>
+          {% for row in stats.top_reps %}
+          <tr>
+            <td><code style="font-size:11px;">{{ row.rep_id }}</code></td>
+            <td class="num">{{ "{:,}".format(row.count) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Daily chart ─────────────────────────── -->
+  <div class="card">
+    <div class="card-title">Daily call counts (last {{ stats.series | length }} days with data)</div>
+    <div class="chart-legend">
+      <span><span class="sw" style="background: var(--blue);"></span> Genesys</span>
+      <span><span class="sw" style="background: var(--yellow);"></span> Zoom</span>
+      <span style="color: var(--muted);">peak day: {{ stats.chart_max }}</span>
+    </div>
+    <div class="chart">
+      {% for s in stats.series %}
+      <div class="col" title="{{ s.date }}: Genesys {{ s.genesys }} · Zoom {{ s.zoom }}">
+        <div class="seg-genesys" style="height: {{ (100 * s.genesys / stats.chart_max) | round(2) }}%;"></div>
+        <div class="seg-zoom"    style="height: {{ (100 * s.zoom    / stats.chart_max) | round(2) }}%;"></div>
+        <div class="tooltip">{{ s.date }}<br/>G {{ s.genesys }} · Z {{ s.zoom }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if stats.series %}
+    <div class="chart-x">
+      <span>{{ stats.series[0].date }}</span>
+      <span>{{ stats.series[-1].date }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Claude vs Ollama agreement ──────────── -->
+  {% if stats.agreement.n_both > 0 %}
+  <div class="card">
+    <div class="card-title">Claude vs Ollama — outcome agreement</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px;">
+      <div class="stat-card">
+        <div class="k">Scored by both</div>
+        <div class="v">{{ stats.agreement.n_both }}</div>
+        <div class="sub">overlap pool</div>
+      </div>
+      <div class="stat-card scored">
+        <div class="k">Same outcome</div>
+        <div class="v">{{ stats.agreement.n_agree }}</div>
+        <div class="sub">{{ "%.0f"|format(stats.agreement.pct) }}% agreement</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Claude only</div>
+        <div class="v">{{ stats.agreement.n_claude_only }}</div>
+        <div class="sub">unmatched by Ollama yet</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Ollama only</div>
+        <div class="v">{{ stats.agreement.n_ollama_only }}</div>
+        <div class="sub">unmatched by Claude yet</div>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: var(--muted); margin-top: 10px;">
+      Each call counted once. Use the "Disagreements" filter on the table below to inspect the gaps.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Conversion by LOI band (real contracts) ─ -->
+  {% if stats.conversion.n_known > 0 %}
+  <div class="card">
+    <div class="card-title">Conversion by LOI band — who actually signs?</div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">
+      Real signed contracts as the arbiter. {{ "{:,}".format(stats.conversion.n_known) }}
+      calls with a known outcome · {{ stats.conversion.n_signed }} signed ·
+      base rate {{ "%.2f"|format(stats.conversion.base_rate) }}%.
+      A well-calibrated LOI should rise monotonically down each column.
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
+      {% for col in [{'t':'Sales-rep LOI (humans)','d':stats.conversion.by_rep_loi},
+                     {'t':'Model (Claude)','d':stats.conversion.by_model}] %}
+      <div>
+        <div style="font-weight:600; font-size:13px; margin-bottom:6px;">{{ col.t }}</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="color:var(--muted); text-align:left;">
+            <th style="padding:3px 6px;">Band</th>
+            <th style="padding:3px 6px; text-align:right;">n</th>
+            <th style="padding:3px 6px; text-align:right;">signed</th>
+            <th style="padding:3px 6px; text-align:right;">conv%</th>
+          </tr></thead>
+          <tbody>
+          {% for b in col.d %}
+            <tr style="border-top:1px solid var(--border, #2a2a2a);">
+              <td style="padding:3px 6px;">{{ b.band }}</td>
+              <td style="padding:3px 6px; text-align:right;">{{ b.n }}</td>
+              <td style="padding:3px 6px; text-align:right;">{{ b.signed }}</td>
+              <td style="padding:3px 6px; text-align:right; font-weight:600;">
+                {% if b.rate is not none %}{{ "%.1f"|format(b.rate) }}%{% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:10px;">
+      Human LOI is shown for comparison only — never used to train. Use the
+      "Conversion" filter on the table below to inspect signed vs not-signed calls.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Outcomes scored so far ──────────────── -->
+  <div class="card">
+    <div class="card-title">Outcomes scored so far ({{ stats.n_scored }} call{{ '' if stats.n_scored == 1 else 's' }})</div>
+    {% if stats.n_scored == 0 %}
+      <div style="color: var(--text-sub); font-size: 13px;">
+        No scored calls yet. Run <code>python -m src.dry_run_scoring --n 50 --recent</code>
+        or use the Score tab to score one.
+      </div>
+    {% else %}
+      <div class="outcome-grid">
+        {% for o in stats.outcome_dist %}
+        <div class="outcome-tile {{ o.outcome | replace(' ', '') }}">
+          <div class="nm">{{ o.outcome }}</div>
+          <div class="ct">{{ o.count }}</div>
+          <div class="pc">{{ "%.1f"|format(o.pct) }}%</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="font-size: 11px; color: var(--muted); margin-top: 12px;">
+        Authored target: Freddo 30% · Tiepido 50% · Calduccio 15% · Caldo 5%
+        (over LOI-eligible calls; Non interessato / Non idoneo are reported separately).
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Table + filters ─────────────────────── -->
+  <div class="card">
+    <div class="card-title">Calls table</div>
+
+    <div class="filters">
+      <div class="field">
+        <label>Source</label>
+        <select id="f-source">
+          <option value="">All</option>
+          <option value="genesys">Genesys</option>
+          <option value="zoom">Zoom</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Call type</label>
+        <select id="f-type">
+          <option value="">All</option>
+          <option value="sales">sales</option>
+          <option value="booking">booking</option>
+          <option value="other">other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date from</label>
+        <input type="date" id="f-from" />
+      </div>
+      <div class="field">
+        <label>Date to</label>
+        <input type="date" id="f-to" />
+      </div>
+      <div class="field">
+        <label>Scored?</label>
+        <select id="f-scored">
+          <option value="">Any</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Outcome</label>
+        <select id="f-outcome">
+          <option value="">Any</option>
+          <option value="Freddo">Freddo</option>
+          <option value="Tiepido">Tiepido</option>
+          <option value="Calduccio">Calduccio</option>
+          <option value="Caldo">Caldo</option>
+          <option value="Non interessato">Non interessato</option>
+          <option value="Non idoneo">Non idoneo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Agreement</label>
+        <select id="f-agree">
+          <option value="">Any</option>
+          <option value="agree">Both agree</option>
+          <option value="disagree">Disagreements</option>
+          <option value="claude-only">Claude only</option>
+          <option value="ollama-only">Ollama only</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Conversion</label>
+        <select id="f-conversion">
+          <option value="">Any</option>
+          <option value="signed">Signed</option>
+          <option value="not_signed">Not signed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Search (call_id, rep, topic)</label>
+        <input type="text" id="f-q" placeholder="text…" />
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top: 14px;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Source</th><th>Call ID</th><th>Date</th><th class="num">Dur</th>
+            <th>Type</th><th>Rep / host</th><th>Audio</th><th>Tr.</th>
+            <th>Claude</th><th>Ollama</th><th title="✓ = same, ✗ = different">A?</th>
+            <th>Rep LOI</th><th>Conv.</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="13" style="text-align:center; color: var(--muted); padding: 20px;">loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <div id="pager-info">—</div>
+      <div class="btns">
+        <button id="page-prev">‹ Prev</button>
+        <button id="page-next">Next ›</button>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+  </div>
+
+  <script>
+    const tbody    = document.getElementById('table-body');
+    const pagerInfo= document.getElementById('pager-info');
+    const prevBtn  = document.getElementById('page-prev');
+    const nextBtn  = document.getElementById('page-next');
+    const fSource  = document.getElementById('f-source');
+    const fType    = document.getElementById('f-type');
+    const fFrom    = document.getElementById('f-from');
+    const fTo      = document.getElementById('f-to');
+    const fScored  = document.getElementById('f-scored');
+    const fOutcome = document.getElementById('f-outcome');
+    const fAgree   = document.getElementById('f-agree');
+    const fConversion = document.getElementById('f-conversion');
+    const fQ       = document.getElementById('f-q');
+
+    let state = { page: 1, size: 50, total: 0 };
+
+    function fmtDur(sec) {
+      if (!sec) return '—';
+      const s = Number(sec);
+      if (Number.isNaN(s) || s <= 0) return '—';
+      const m = Math.floor(s/60), r = s % 60;
+      return `${m}:${String(r).padStart(2,'0')}`;
+    }
+    function htmlEscape(s) {
+      return (s == null ? '' : String(s)).replace(/[&<>"']/g,
+        c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function badge(text, kind) {
+      return `<span class="badge badge-${kind}">${htmlEscape(text)}</span>`;
+    }
+    function tickCell(b) {
+      return b ? '<span style="color:var(--green);">✓</span>'
+               : '<span style="color:var(--muted);">·</span>';
+    }
+
+    function outcomeBadge(outcome) {
+      if (!outcome) return '<span style="color:var(--muted);">—</span>';
+      const cls = 'badge-out-' + outcome.replace(/\s+/g, '');
+      return `<span class="badge ${cls}">${htmlEscape(outcome)}</span>`;
+    }
+
+    function agreeCell(r) {
+      if (r.agree === true)  return '<span style="color:var(--green);font-weight:700;">✓</span>';
+      if (r.agree === false) return '<span style="color:var(--red);font-weight:700;">✗</span>';
+      return '<span style="color:var(--muted);">·</span>';
+    }
+    function dualOutcomeCell(outcome, score) {
+      if (!outcome) return '<span style="color:var(--muted);">—</span>';
+      return outcomeBadge(outcome) +
+             (score != null ? ` <span style="color:var(--muted);font-size:11px;">(${score})</span>` : '');
+    }
+
+    async function reload() {
+      const params = new URLSearchParams({
+        source: fSource.value, call_type: fType.value,
+        date_from: fFrom.value, date_to: fTo.value,
+        has_score: fScored.value, outcome: fOutcome.value,
+        agree: fAgree.value, conversion: fConversion.value, q: fQ.value,
+        page: state.page, size: state.size,
+      });
+      tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color: var(--muted); padding: 20px;">loading…</td></tr>';
+      const resp = await fetch('/data.json?' + params.toString());
+      const data = await resp.json();
+      state.total = data.total;
+      if (!data.rows.length) {
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color: var(--muted); padding: 20px;">no rows match filters</td></tr>';
+      } else {
+        tbody.innerHTML = data.rows.map(r => `
+          <tr>
+            <td>${badge(r.source, r.source)}</td>
+            <td><code title="${htmlEscape(r.call_id)}">${htmlEscape((r.call_id || '').slice(0,16))}…</code></td>
+            <td>${htmlEscape(r.call_date)}</td>
+            <td class="num">${fmtDur(r.duration_sec)}</td>
+            <td>${r.call_type ? htmlEscape(r.call_type) : '<span class="badge badge-empty">—</span>'}</td>
+            <td><code style="font-size:11px;">${htmlEscape((r.rep_id || r.host_email || '').slice(0,28))}</code></td>
+            <td>${tickCell(r.has_audio)}</td>
+            <td>${tickCell(r.has_transcript)}</td>
+            <td>${dualOutcomeCell(r.claude_outcome, r.claude_score)}</td>
+            <td title="${htmlEscape(r.ollama_model || '')}">${dualOutcomeCell(r.ollama_outcome, r.ollama_score)}</td>
+            <td style="text-align:center;">${agreeCell(r)}</td>
+            <td>${r.rep_loi || '<span style="color:var(--muted);">—</span>'}</td>
+            <td>${r.conversion_outcome || '<span style="color:var(--muted);">—</span>'}</td>
+          </tr>`).join('');
+      }
+      const from = (state.page-1)*state.size + 1;
+      const to   = Math.min(state.page*state.size, state.total);
+      pagerInfo.textContent = state.total
+        ? `Showing ${from}–${to} of ${state.total.toLocaleString()}`
+        : '0 rows';
+      prevBtn.disabled = state.page <= 1;
+      nextBtn.disabled = to >= state.total;
+    }
+
+    prevBtn.addEventListener('click', () => { if (state.page > 1) { state.page--; reload(); } });
+    nextBtn.addEventListener('click', () => {
+      if (state.page * state.size < state.total) { state.page++; reload(); }
+    });
+    [fSource, fType, fFrom, fTo, fScored, fOutcome, fAgree, fConversion].forEach(el =>
+      el.addEventListener('change', () => { state.page = 1; reload(); })
+    );
+    let qDebounce;
+    fQ.addEventListener('input', () => {
+      clearTimeout(qDebounce);
+      qDebounce = setTimeout(() => { state.page = 1; reload(); }, 250);
+    });
+
+    {% if not stats.empty %}reload();{% endif %}
+  </script>
+</body>
+</html>

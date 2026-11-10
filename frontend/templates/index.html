@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOI Pipeline</title>
+<style>
+  :root{--bg:#0f1115;--card:#1a1d24;--line:#2a2f3a;--txt:#e6e8ec;--mut:#9aa3b2;
+        --accent:#3b82f6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  header{padding:18px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  header h1{font-size:18px;margin:0;font-weight:650}
+  .pill{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:99px;padding:2px 10px}
+  main{max-width:1100px;margin:0 auto;padding:22px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h3{margin:0 0 6px;font-size:12px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .card .big{font-size:26px;font-weight:700}
+  .card .sub{font-size:12px;color:var(--mut);margin-top:4px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px}
+  .ok{background:rgba(34,197,94,.15);color:var(--green)} .bad{background:rgba(239,68,68,.15);color:var(--red)}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin-bottom:18px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;flex:1;min-width:300px}
+  .panel h2{margin:0 0 4px;font-size:15px}
+  .panel p{margin:0 0 14px;color:var(--mut);font-size:12.5px}
+  button{font:inherit;font-weight:650;border:0;border-radius:9px;padding:11px 16px;cursor:pointer;color:#fff;background:var(--accent)}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt);font-weight:550}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  a.dl{font-size:12px;color:var(--accent);text-decoration:none;margin-right:14px}
+  a.dl[aria-disabled=true]{color:var(--mut);pointer-events:none}
+  .file{display:flex;gap:10px;align-items:center;margin-top:6px}
+  input[type=file]{font:inherit;color:var(--mut)}
+  #console{background:#06080c;border:1px solid var(--line);border-radius:12px;margin-top:6px;
+           padding:14px;height:340px;overflow:auto;font:12.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre-wrap}
+  #console .hd{color:var(--accent)} #console .er{color:var(--red)} #console .ok2{color:var(--green)}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--mut);border-top-color:transparent;
+        border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .muted{color:var(--mut);font-size:12px}
+  #result{display:none;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.35);
+          border-radius:10px;padding:13px 16px;margin-bottom:14px;font-size:13.5px}
+  #result.err{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.35)}
+  a.btn-dl{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+           font-weight:650;padding:8px 14px;border-radius:8px;margin-left:8px}
+  #queuedTxt b{color:var(--txt)}
+</style>
+</head>
+<body>
+<header>
+  <h1>LOI Pipeline</h1>
+  <span class="pill">Part 1 · scoring</span><span class="pill">Part 2 · ads feed</span>
+  <span id="runState" class="pill" style="margin-left:auto"></span>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card"><h3>Scored calls</h3><div class="big" id="masterCount">–</div><div class="sub">in the master</div></div>
+    <div class="card"><h3>Latest Excel</h3><div class="big" id="excelName" style="font-size:14px">–</div>
+      <div class="sub"><a class="dl" id="dlExcel" href="/download/excel">⬇ download</a><span id="excelTime"></span></div></div>
+    <div class="card"><h3>CRM file in use</h3><div class="big" id="crmName" style="font-size:13px">–</div><div class="sub" id="crmTime"></div></div>
+    <div class="card"><h3>Ads feed (Option C)</h3><div class="big" id="liveReady">–</div>
+      <div class="sub"><span id="goodhart"></span></div></div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <h2>① Drop the CRM file</h2>
+      <p>The weekly <code>zoom_calendar_event_merged ….xlsx</code>. Used for leadids (Part 1) and click-ids (Part 2). Saved with today's date; newest wins.</p>
+      <div class="file"><input type="file" id="crmFile" accept=".xlsx">
+        <button class="ghost" onclick="uploadCrm()">Upload</button></div>
+      <div class="muted" id="uploadMsg" style="margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <h2>② Fetch &amp; run</h2>
+      <p id="queuedTxt" class="muted">—</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button id="btnFetch" class="ghost" onclick="run('fetch')">↻ Fetch new calls</button>
+        <button id="btnP1" onclick="run('part1')">▶ Part 1 — Score LOIs</button>
+        <button id="btnP2" onclick="run('part2')">▶ Part 2 — Build Ads Feed</button>
+        <button id="btnXl" class="ghost" onclick="run('excel')">Rebuild Excel</button>
+      </div>
+      <div style="margin-top:12px">
+        <a class="dl" id="dlGoogle" href="/download/google">⬇ Google CSV</a>
+        <a class="dl" id="dlMeta" href="/download/meta">⬇ Meta JSON</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="result"></div>
+
+  <h2 style="font-size:14px;margin:6px 0">Live log</h2>
+  <div id="console"><span class="muted">Idle. Run a part to see output here.</span></div>
+</main>
+
+<script>
+let curJob=null, curName=null, lineCount=0, timer=null;
+const $=id=>document.getElementById(id);
+
+function setButtons(on){ ["btnFetch","btnP1","btnP2","btnXl"].forEach(b=>$(b).disabled=!on); }
+function dl(id,ok){ const a=$(id); a.setAttribute("aria-disabled", ok?"false":"true"); }
+
+async function refresh(){
+  const s=await (await fetch("/api/status")).json();
+  $("masterCount").textContent=(s.master_count||0).toLocaleString();
+  $("queuedTxt").innerHTML="<b>"+(s.queued||0)+"</b> calls staged to score  ·  refresh with “Fetch new calls”";
+  $("excelName").textContent=s.excel?s.excel.name:"—";
+  $("excelTime").textContent=s.excel?(" · "+s.excel.mtime):"";
+  $("crmName").textContent=s.crm?s.crm.name:"— none yet —";
+  $("crmTime").textContent=s.crm?s.crm.mtime:"";
+  const o=s.optc||{};
+  if(o.feed_rows!=null){
+    $("liveReady").innerHTML=o.live_ready+" / "+o.feed_rows;
+    const g=o.goodhart_pass?'<span class="badge ok">Goodhart '+o.goodhart_auc+' PASS</span>'
+                           :'<span class="badge bad">Goodhart '+o.goodhart_auc+' FAIL</span>';
+    $("goodhart").innerHTML=g+' &nbsp; <span class="muted">'+(o.awaiting_click_id||0)+' awaiting click-id</span>';
+  } else { $("liveReady").textContent="—"; $("goodhart").textContent=""; }
+  dl("dlExcel",s.downloads.excel); dl("dlGoogle",s.downloads.google); dl("dlMeta",s.downloads.meta);
+  if(s.running && curJob!==s.running.id){ attach(s.running.id, s.running.name); }
+  if(!s.running && !curJob){ setButtons(true); $("runState").textContent=""; }
+}
+
+function logLine(t){
+  const c=$("console"); const d=document.createElement("div");
+  if(t.startsWith("$ ")) d.className="hd"; else if(t.startsWith("!!")) d.className="er";
+  else if(t.startsWith("✓")||t.startsWith("===")) d.className="ok2";
+  d.textContent=t; c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function clearLog(){ $("console").innerHTML=""; }
+
+function attach(id,name){
+  curJob=id; curName=name; lineCount=0; setButtons(false);
+  $("result").style.display="none";
+  $("runState").innerHTML='<span class="spin"></span>running: '+name;
+  if(timer) clearInterval(timer);
+  timer=setInterval(()=>poll(id),1500); poll(id);
+}
+async function poll(id){
+  const r=await fetch("/api/logs/"+id+"?since="+lineCount);
+  if(!r.ok){ clearInterval(timer); return; }
+  const d=await r.json();
+  if(d.lines.length){ d.lines.forEach(logLine); lineCount=d.total; }
+  if(d.status!=="running"){
+    clearInterval(timer); timer=null;
+    const fname=curName; curJob=null; curName=null;
+    logLine("=== "+d.status.toUpperCase()+" ===");
+    setButtons(true); $("runState").textContent="";
+    showResult(fname, d.status); refresh();
+  }
+}
+function showResult(name, status){
+  const r=$("result");
+  r.className = status==="done" ? "" : "err";
+  let h;
+  if(status!=="done") h="✖ "+(name||"job")+" failed — check the log above.";
+  else if(name==="part1"||name==="excel") h='✓ Done. <a class="btn-dl" href="/download/excel">⬇ Download Excel</a>';
+  else if(name==="part2") h='✓ Done. <a class="btn-dl" href="/download/google">⬇ Google CSV</a> <a class="btn-dl" href="/download/meta">⬇ Meta JSON</a>';
+  else if(name==="fetch") h='✓ Fetched. Calls are staged — click <b>Part 1 — Score LOIs</b> to score them.';
+  else h="✓ Done.";
+  r.innerHTML=h; r.style.display="block";
+}
+async function run(part){
+  const msg = part==="part1" ? "Part 1 pulls Zoom + runs Kaggle (~30–45 min). Continue?"
+            : part==="part2" ? "Part 2 rebuilds the Google/Meta feed. Continue?" : null;
+  if(msg && !confirm(msg)) return;
+  const r=await fetch("/api/run/"+part,{method:"POST"});
+  if(r.status===409){ alert("A job is already running."); return; }
+  const j=await r.json(); clearLog(); attach(j.job_id, part);
+}
+async function uploadCrm(){
+  const f=$("crmFile").files[0];
+  if(!f){ $("uploadMsg").textContent="Pick an .xlsx first."; return; }
+  const fd=new FormData(); fd.append("file",f);
+  $("uploadMsg").textContent="Uploading…";
+  const r=await fetch("/api/upload_crm",{method:"POST",body:fd});
+  const d=await r.json();
+  $("uploadMsg").textContent = r.ok ? ("Saved as "+d.saved) : ("Error: "+(d.error||"failed"));
+  refresh();
+}
+refresh(); setInterval(()=>{ if(!curJob) refresh(); }, 5000);
+</script>
+</body>
+</html>

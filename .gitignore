@@ -1,0 +1,52 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*service_account*.json
+credentials*.json
+token*.json
+*.pem
+*.key
+
+# Data, logs and generated deliverables (never commit these)
+data/
+output/
+*.csv
+*.csv.gz
+*.parquet
+*.xlsx
+*.xls
+*.jsonl
+*.pdf
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Call audio, transcripts and model artefacts (contain personal data / large)
+*.wav
+*.mp3
+*.m4a
+*.webm
+*.vtt
+*.gguf
+*.safetensors
+*.bin
+*.db
+models/
+transcripts/
+kaggle/out/
+outputs/
+*.txt
+!requirements.txt
+*.sqlite*

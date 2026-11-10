@@ -1,0 +1,15 @@
+# Analysis, reporting and warehouse scripts (allocation-briefing, booking-*).
+# The scoring pipeline has its own list in scoring/requirements.txt;
+# Kaggle fine-tuning deps (torch, transformers, trl, unsloth) live on Kaggle.
+pandas
+numpy
+scipy
+scikit-learn
+matplotlib
+reportlab
+openpyxl
+gspread
+python-dotenv
+requests
+flask
+snowflake-connector-python

@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LOI Audio Scoring</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='20' font-size='22'%3E📞%3C/text%3E%3C/svg%3E"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07071a;
+      --bg-grad:   radial-gradient(ellipse 80% 40% at 50% 0%, rgba(249,115,22,0.10), transparent);
+      --card:      #10102a;
+      --card-2:    #16164a;
+      --border:    #2a2a5a;
+      --border-2:  #3a3a7a;
+      --accent:    #f97316;
+      --accent-hi: #fb923c;
+      --green:     #10b981;
+      --green-bg:  rgba(16,185,129,0.12);
+      --yellow:    #eab308;
+      --yellow-bg: rgba(234,179,8,0.12);
+      --orange:    #f97316;
+      --orange-bg: rgba(249,115,22,0.12);
+      --red:       #ef4444;
+      --red-bg:    rgba(239,68,68,0.12);
+      --gray:      #6b7280;
+      --gray-bg:   rgba(107,114,128,0.12);
+      --text:      #e2e8f0;
+      --text-sub:  #94a3b8;
+      --muted:     #64748b;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    body {
+      min-height: 100vh;
+      padding: 32px 16px 80px;
+      background-image: var(--bg-grad);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hi); }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header { text-align: center; margin-bottom: 28px; }
+    .header .logo {
+      display: inline-flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    }
+    .header .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, #c2410c, var(--accent));
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(249,115,22,0.35);
+    }
+    .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+    .header p { color: var(--text-sub); font-size: 13px; letter-spacing: 0.4px; }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .grid {
+      width: 100%; max-width: 1080px;
+      display: grid; grid-template-columns: 1fr 280px; gap: 20px;
+    }
+    @media (max-width: 880px) {
+      .grid { grid-template-columns: 1fr; }
+      .sidebar { order: -1; }
+    }
+
+    /* ── Cards ──────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Sidebar settings ───────────────────────────────── */
+    .sidebar .card { padding: 18px; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.8px; color: var(--text-sub); margin-bottom: 6px;
+    }
+    select, input[type="text"] {
+      width: 100%; padding: 9px 10px;
+      background: #0a0a23; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--accent); }
+
+    .cap-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      background: var(--gray-bg); color: var(--text-sub);
+      border: 1px solid var(--border);
+    }
+    .cap-pill.ok { background: var(--green-bg); color: var(--green); border-color: rgba(16,185,129,0.3); }
+    .cap-pill.no { background: var(--red-bg); color: var(--red); border-color: rgba(239,68,68,0.3); }
+    .cap-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* ── Dropzone ───────────────────────────────────────── */
+    .dropzone {
+      border: 2px dashed var(--border-2);
+      border-radius: 14px;
+      padding: 60px 30px;
+      text-align: center;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      background: rgba(22,22,74,0.4);
+    }
+    .dropzone:hover { border-color: var(--accent); background: rgba(249,115,22,0.04); }
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(249,115,22,0.10);
+      transform: scale(1.01);
+    }
+    .dropzone .drop-icon { font-size: 42px; margin-bottom: 12px; opacity: 0.7; }
+    .dropzone .drop-main { font-size: 17px; font-weight: 600; color: var(--text); }
+    .dropzone .drop-sub { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
+    .dropzone input[type=file] { display: none; }
+
+    .file-info {
+      display: none;
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .file-info.show { display: flex; }
+    .file-meta .name { font-weight: 600; font-size: 14px; }
+    .file-meta .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 11px 18px;
+      background: var(--accent); color: white;
+      border: none; border-radius: 9px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { background: var(--accent-hi); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent; color: var(--text-sub);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--card-2); color: var(--text); border-color: var(--border-2); }
+    .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 16px; }
+
+    /* ── Status / spinner ───────────────────────────────── */
+    .status {
+      display: none; margin-top: 16px;
+      padding: 14px 18px;
+      background: var(--card-2); border: 1px solid var(--border);
+      border-radius: 10px;
+      align-items: center; gap: 12px;
+    }
+    .status.show { display: flex; }
+    .status.error { background: var(--red-bg); border-color: rgba(239,68,68,0.3); color: var(--red); }
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result ─────────────────────────────────────────── */
+    #result { display: none; }
+    #result.show { display: block; animation: slidein 0.25s ease; }
+    @keyframes slidein {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .outcome-banner {
+      padding: 26px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .outcome-banner .label-block { display: flex; flex-direction: column; gap: 4px; }
+    .outcome-banner .name { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+    .outcome-banner .sub { font-size: 13px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
+    .outcome-banner .score-block { text-align: right; }
+    .outcome-banner .score { font-size: 48px; font-weight: 800; line-height: 1; }
+    .outcome-banner .score-sub { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+
+    .outcome-Freddo          { background: var(--red-bg);    color: var(--red); }
+    .outcome-Tiepido         { background: var(--orange-bg); color: var(--orange); }
+    .outcome-Calduccio       { background: var(--yellow-bg); color: var(--yellow); }
+    .outcome-Caldo           { background: var(--green-bg);  color: var(--green); }
+    .outcome-Non-interessato { background: var(--gray-bg);   color: var(--text-sub); }
+    .outcome-Non-idoneo      { background: var(--gray-bg);   color: var(--muted); }
+
+    /* ── Tree ───────────────────────────────────────────── */
+    .tree {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-top: 8px;
+    }
+    .tree .step {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      position: relative;
+    }
+    .tree .step .q { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .tree .step .v { font-size: 14px; font-weight: 600; margin-top: 4px; word-break: break-word; }
+    .tree .step.active { border-color: var(--accent); }
+    .tree .step.muted .v { color: var(--muted); font-style: italic; }
+    @media (max-width: 640px) { .tree { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      margin-top: 18px;
+    }
+    .stat {
+      background: var(--card-2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+    .stat .v { font-size: 18px; font-weight: 700; margin-top: 4px; }
+
+    .evidence { margin-top: 18px; }
+    .evidence h4 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .evidence blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: var(--card-2);
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+      color: var(--text);
+    }
+
+    details {
+      margin-top: 14px;
+      background: var(--card-2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0;
+    }
+    details > summary {
+      padding: 10px 14px; cursor: pointer; font-size: 13px;
+      color: var(--text-sub); user-select: none;
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker { display: none; }
+    details > summary::before { content: "▸ "; margin-right: 4px; }
+    details[open] > summary::before { content: "▾ "; }
+    details > div { padding: 0 14px 14px; }
+    details pre {
+      background: #07071a; border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px;
+      overflow: auto; max-height: 300px;
+      font-family: ui-monospace, "Consolas", monospace;
+      font-size: 12px; line-height: 1.5;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    details .transcript {
+      background: #07071a; border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px;
+      max-height: 360px; overflow: auto;
+      font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+    }
+
+    /* ── Fetch panel ────────────────────────────────────── */
+    .field-row {
+      display: grid; gap: 10px;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+    @media (max-width: 700px) { .field-row { grid-template-columns: 1fr 1fr; } }
+    input[type="date"], input[type="number"] {
+      width: 100%; padding: 9px 10px;
+      background: #0a0a23; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: inherit;
+      color-scheme: dark;
+    }
+    input[type="date"]:focus, input[type="number"]:focus {
+      outline: none; border-color: var(--accent);
+    }
+
+    .log-box {
+      display: none;
+      margin-top: 14px;
+      background: #07071a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      max-height: 320px;
+      overflow: auto;
+      font-family: ui-monospace, "Consolas", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log-box.show { display: block; }
+    .log-line { padding: 1px 0; }
+    .log-genesys { color: #93c5fd; }
+    .log-zoom    { color: #fcd34d; }
+    .log-system  { color: var(--accent); font-weight: 600; }
+    .log-error   { color: var(--red); }
+
+    .fetch-summary {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: var(--green-bg);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 10px;
+      color: var(--green);
+      font-size: 13px;
+    }
+    .fetch-summary.show { display: block; }
+
+    /* ── In-page tabs ──────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-sub);
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* footer */
+    footer {
+      max-width: 1080px; margin-top: 14px;
+      font-size: 12px; color: var(--muted); text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📞</div>
+      <h1>LOI Audio Scoring</h1>
+    </div>
+    <p>Italian sales-call → Level of Interest (decision-tree rubric)</p>
+    <div style="margin-top: 16px; display: inline-flex; gap: 8px;">
+      <a href="/" style="padding: 7px 14px; background: var(--accent); color: white; border-radius: 8px; font-size: 13px; font-weight: 600;">Score</a>
+      <a href="/data" style="padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text-sub);">Data</a>
+    </div>
+  </div>
+
+  <div class="grid">
+    <main>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="upload">Upload &amp; score</button>
+        <button class="tab-btn" data-tab="fetch">Fetch new data</button>
+      </div>
+
+      <div id="tab-fetch" class="tab-content">
+      <div class="card">
+        <div class="card-title">Fetch new data</div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fetch-start">Start date</label>
+            <input type="date" id="fetch-start" />
+          </div>
+          <div class="field">
+            <label for="fetch-end">End date</label>
+            <input type="date" id="fetch-end" />
+          </div>
+          <div class="field">
+            <label for="fetch-source">Sources</label>
+            <select id="fetch-source">
+              <option value="both" selected>Zoom + Genesys</option>
+              <option value="zoom">Zoom only</option>
+              <option value="genesys">Genesys only</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fetch-max">Max per source</label>
+            <input type="number" id="fetch-max" placeholder="all" min="0" />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="fetch-btn" class="btn">Fetch</button>
+          <span style="color: var(--text-sub); font-size: 12px;">
+            Writes to <code>data/audio/</code>, <code>data/transcripts/</code>,
+            and per-source metadata CSVs. Idempotent — re-runs skip already-fetched calls.
+          </span>
+        </div>
+
+        <div id="fetch-summary" class="fetch-summary"></div>
+        <div id="fetch-log" class="log-box"></div>
+      </div>
+      </div><!-- /tab-fetch -->
+
+      <div id="tab-upload" class="tab-content active">
+      <div class="card">
+        <div class="card-title">Upload</div>
+
+        <div id="dropzone" class="dropzone">
+          <div class="drop-icon">🎙️</div>
+          <div class="drop-main">Drop a call audio or transcript here</div>
+          <div class="drop-sub" id="drop-sub">
+            Audio: {{ caps.supported_audio | join(', ') }}
+            &nbsp;·&nbsp;
+            Transcript: {{ caps.supported_transcript | join(', ') }}
+          </div>
+          <input type="file" id="file-input"
+                 accept=".{{ caps.supported_audio | join(',.') }},.{{ caps.supported_transcript | join(',.') }}" />
+        </div>
+
+        <div id="file-info" class="file-info">
+          <div class="file-meta">
+            <div class="name" id="file-name"></div>
+            <div class="sub" id="file-sub"></div>
+          </div>
+          <button class="btn-ghost btn" id="file-clear" type="button">Remove</button>
+        </div>
+
+        <div id="status" class="status">
+          <div class="spinner"></div>
+          <div id="status-text">Working…</div>
+        </div>
+
+        <div class="btn-row">
+          <button id="score-btn" class="btn" disabled>Score this call</button>
+          <span style="color: var(--text-sub); font-size: 13px;" id="cost-hint"></span>
+        </div>
+      </div>
+
+      <div id="result"></div>
+      </div><!-- /tab-upload -->
+    </main>
+
+    <aside class="sidebar">
+      <div class="card">
+        <div class="card-title">Settings</div>
+
+        <div class="field">
+          <label for="model-select">Scoring backend & model</label>
+          <select id="model-select">
+            <optgroup label="Anthropic (API, paid)">
+              <option value="anthropic|{{ caps.models.default }}" selected>
+                {{ caps.models.default }} (~$0.02/call, ~5 s)
+              </option>
+              <option value="anthropic|{{ caps.models.ceiling }}">
+                {{ caps.models.ceiling }} (~$0.10/call, ceiling)
+              </option>
+            </optgroup>
+            <optgroup label="Ollama (local, free)">
+              <option value="ollama|{{ caps.models.ollama }}">
+                {{ caps.models.ollama }} (free, ~1–5 min on CPU)
+              </option>
+            </optgroup>
+          </select>
+          <div id="model-hint" style="font-size: 11px; color: var(--muted); margin-top: 6px; display:none;">
+            ⏳ Long transcripts are auto-truncated to ~8k chars for Ollama.
+            Wall time scales with input size; be patient — no progress is shown.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="backend-select">Audio transcription</label>
+          <select id="backend-select">
+            <option value="auto" selected>Auto (local if available)</option>
+            <option value="local">Local Whisper (free)</option>
+            <option value="openai">OpenAI Whisper API ($0.006/min)</option>
+          </select>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+            Ignored for transcript uploads.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Status</div>
+        <div class="cap-grid">
+          <span class="cap-pill {{ 'ok' if caps.anthropic_ready else 'no' }}">
+            {{ '✓' if caps.anthropic_ready else '✗' }} Anthropic key
+          </span>
+          <span class="cap-pill {{ 'ok' if caps.ollama_ready else 'no' }}"
+                title="{{ caps.ollama_model }}">
+            {{ '✓' if caps.ollama_ready else '✗' }} Ollama
+          </span>
+          <span class="cap-pill {{ 'ok' if caps.openai_ready else 'no' }}">
+            {{ '✓' if caps.openai_ready else '✗' }} OpenAI key
+          </span>
+          <span class="cap-pill {{ 'ok' if caps.faster_whisper else 'no' }}">
+            {{ '✓' if caps.faster_whisper else '✗' }} faster-whisper
+          </span>
+          <span class="cap-pill {{ 'ok' if caps.ffmpeg else 'no' }}">
+            {{ '✓' if caps.ffmpeg else '✗' }} ffmpeg
+          </span>
+        </div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 12px;">
+          Rubric <code>{{ caps.rubric_version }}</code>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Authored target</div>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+          <div style="display:flex; justify-content:space-between;"><span style="color: var(--red);">Freddo</span> <b>{{ '{:.0%}'.format(caps.expected_dist.Freddo) }}</b></div>
+          <div style="display:flex; justify-content:space-between;"><span style="color: var(--orange);">Tiepido</span> <b>{{ '{:.0%}'.format(caps.expected_dist.Tiepido) }}</b></div>
+          <div style="display:flex; justify-content:space-between;"><span style="color: var(--yellow);">Calduccio</span> <b>{{ '{:.0%}'.format(caps.expected_dist.Calduccio) }}</b></div>
+          <div style="display:flex; justify-content:space-between;"><span style="color: var(--green);">Caldo</span> <b>{{ '{:.0%}'.format(caps.expected_dist.Caldo) }}</b></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    Scoring rubric: local demo configuration
+    · Workflow: <code>docs/loi_audio_mvp_workflow_v3.md</code>
+  </footer>
+
+  <script>
+    // ─── Tabs ─────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b =>
+          b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-content').forEach(c =>
+          c.classList.toggle('active', c.id === 'tab-' + target));
+      });
+    });
+
+    const AUDIO_EXTS = new Set({{ caps.supported_audio | tojson }});
+    const TRANSCRIPT_EXTS = new Set({{ caps.supported_transcript | tojson }});
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSub  = document.getElementById('file-sub');
+    const fileClear= document.getElementById('file-clear');
+    const scoreBtn = document.getElementById('score-btn');
+    const statusBox= document.getElementById('status');
+    const statusTx = document.getElementById('status-text');
+    const result   = document.getElementById('result');
+    const costHint = document.getElementById('cost-hint');
+    const modelSel = document.getElementById('model-select');
+    const backendSel = document.getElementById('backend-select');
+    const modelHint = document.getElementById('model-hint');
+
+    function syncModelHint() {
+      modelHint.style.display = modelSel.value.startsWith('ollama|') ? '' : 'none';
+    }
+    modelSel.addEventListener('change', syncModelHint);
+    syncModelHint();
+
+    let currentFile = null;
+
+    function ext(name) { return (name.split('.').pop() || '').toLowerCase(); }
+    function fileKind(name) {
+      const e = ext(name);
+      if (AUDIO_EXTS.has(e)) return 'audio';
+      if (TRANSCRIPT_EXTS.has(e)) return 'transcript';
+      return null;
+    }
+    function fmtBytes(n) {
+      if (n < 1024) return n + ' B';
+      if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+      return (n/1024/1024).toFixed(1) + ' MB';
+    }
+
+    function pickFile(file) {
+      const kind = fileKind(file.name);
+      if (!kind) {
+        showStatus('Unsupported file type: .' + ext(file.name), true);
+        return;
+      }
+      currentFile = file;
+      fileName.textContent = file.name;
+      fileSub.textContent  = `${kind} · ${fmtBytes(file.size)}`;
+      fileInfo.classList.add('show');
+      scoreBtn.disabled = false;
+      costHint.textContent = kind === 'transcript'
+        ? 'No transcription needed — only the LLM scoring cost.'
+        : 'Audio: transcription + LLM scoring.';
+      hideStatus();
+    }
+
+    function clearFile() {
+      currentFile = null;
+      fileInput.value = '';
+      fileInfo.classList.remove('show');
+      scoreBtn.disabled = true;
+      costHint.textContent = '';
+      result.classList.remove('show');
+      result.innerHTML = '';
+    }
+
+    function showStatus(text, isError=false) {
+      statusBox.classList.add('show');
+      statusBox.classList.toggle('error', !!isError);
+      statusBox.querySelector('.spinner').style.display = isError ? 'none' : '';
+      statusTx.textContent = text;
+    }
+    function hideStatus() { statusBox.classList.remove('show'); }
+
+    // ─── Dropzone behavior ─────────────────────────────
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) pickFile(e.target.files[0]);
+    });
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add('dragover');
+      })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      })
+    );
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]);
+    });
+    fileClear.addEventListener('click', e => { e.stopPropagation(); clearFile(); });
+
+    // ─── Score ─────────────────────────────────────────
+    scoreBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+      scoreBtn.disabled = true;
+      result.classList.remove('show');
+      result.innerHTML = '';
+      const kind = fileKind(currentFile.name);
+      showStatus(kind === 'audio'
+        ? `Transcribing audio (${backendSel.value === 'openai' ? 'OpenAI API' : 'local Whisper'})…`
+        : 'Parsing transcript…');
+
+      // modelSel.value is "<backend>|<model>", e.g. "ollama|qwen2.5:7b"
+      const [scoreBackend, scoreModel] = modelSel.value.split('|');
+      const fd = new FormData();
+      fd.append('file', currentFile);
+      fd.append('score_backend', scoreBackend);
+      fd.append('model', scoreModel);
+      fd.append('backend', backendSel.value);
+
+      // small UX: bump status text after a delay so user knows we moved to scoring
+      const t = setTimeout(() => showStatus('Scoring with ' + scoreModel + '…'),
+                           kind === 'audio' ? 4000 : 800);
+      try {
+        const resp = await fetch('/score', { method: 'POST', body: fd });
+        const data = await resp.json();
+        clearTimeout(t);
+        if (!resp.ok || !data.ok) {
+          showStatus(data.error || ('HTTP ' + resp.status), true);
+          scoreBtn.disabled = false;
+          return;
+        }
+        hideStatus();
+        renderResult(data);
+        scoreBtn.disabled = false;
+      } catch (err) {
+        clearTimeout(t);
+        showStatus('Request failed: ' + err.message, true);
+        scoreBtn.disabled = false;
+      }
+    });
+
+    // ─── Render ────────────────────────────────────────
+    function htmlEscape(s) {
+      return (s || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function outcomeClass(name) {
+      return 'outcome-' + (name || '').replace(/\s+/g, '-');
+    }
+
+    function renderResult(d) {
+      const s = d.score || {};
+      const tp = s.tree_path || {};
+      const quotes = (s.evidence_quotes || []).map(q =>
+        `<blockquote>${htmlEscape(q)}</blockquote>`).join('');
+
+      const q = (label, val, raw_key) => {
+        const blank = (val === null || val === undefined || val === 'null');
+        return `<div class="step ${blank ? 'muted' : 'active'}">
+          <div class="q">${label}</div>
+          <div class="v">${blank ? '—' : htmlEscape(String(val))}</div>
+        </div>`;
+      };
+
+      const behaviorRow = s.behavior_modifier_applied
+        ? `<div class="card" style="margin-top:18px; background: var(--orange-bg); border-color: rgba(249,115,22,0.3);">
+             <div class="card-title" style="color: var(--orange);">Behavior modifier applied</div>
+             <div>${htmlEscape(s.behavior_modifier_reason || '—')}</div>
+           </div>`
+        : '';
+
+      result.innerHTML = `
+        <div class="card">
+          <div class="outcome-banner ${outcomeClass(s.outcome)}">
+            <div class="label-block">
+              <div class="sub">Outcome</div>
+              <div class="name">${htmlEscape(s.outcome || '?')}</div>
+            </div>
+            <div class="score-block">
+              <div class="score">${s.score ?? '—'}</div>
+              <div class="score-sub">Score · confidence ${htmlEscape(s.confidence || '—')}</div>
+            </div>
+          </div>
+
+          <div class="card-title">Decision tree walk</div>
+          <div class="tree">
+            ${q('Q1 — Wants product?', tp.q1)}
+            ${q('Q2 — Conditions to proceed?', tp.q2)}
+            ${q('Q3 — Phase?', tp.q3)}
+            ${q('Q4 — Reaction to price?', tp.q4)}
+          </div>
+
+          <div class="stat-row">
+            <div class="stat"><div class="k">Time signal</div><div class="v">${htmlEscape(s.time_signal || '—')}</div></div>
+            <div class="stat"><div class="k">Cost (USD)</div><div class="v">$${(d.cost_usd || 0).toFixed(4)}</div></div>
+            <div class="stat"><div class="k">Wall time</div><div class="v">${(d.timings.total_sec || 0).toFixed(1)}s</div></div>
+          </div>
+
+          ${behaviorRow}
+
+          ${quotes ? `<div class="evidence">
+            <h4>Evidence the model cited</h4>
+            ${quotes}
+          </div>` : ''}
+
+          <details>
+            <summary>Run details</summary>
+            <div>
+              <pre>${htmlEscape(JSON.stringify({
+                model: d.model,
+                rubric_version: d.rubric_version,
+                input_tokens: d.input_tokens,
+                output_tokens: d.output_tokens,
+                cost_usd: d.cost_usd,
+                timings: d.timings,
+                transcription_source: d.transcription_source,
+                transcript_chars: d.transcript_chars,
+              }, null, 2))}</pre>
+            </div>
+          </details>
+
+          <details>
+            <summary>Transcript (${d.transcript_chars.toLocaleString()} chars)</summary>
+            <div><div class="transcript">${htmlEscape(d.transcript)}</div></div>
+          </details>
+
+          <details>
+            <summary>Raw model JSON</summary>
+            <div><pre>${htmlEscape(JSON.stringify(s, null, 2))}</pre></div>
+          </details>
+        </div>
+      `;
+      result.classList.add('show');
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ─── Fetch new data (SSE-over-POST) ──────────────────
+    const fetchStartEl = document.getElementById('fetch-start');
+    const fetchEndEl   = document.getElementById('fetch-end');
+    const fetchSourceEl= document.getElementById('fetch-source');
+    const fetchMaxEl   = document.getElementById('fetch-max');
+    const fetchBtn     = document.getElementById('fetch-btn');
+    const fetchLog     = document.getElementById('fetch-log');
+    const fetchSummary = document.getElementById('fetch-summary');
+
+    // default dates: last 7 days
+    (function initDates() {
+      const today = new Date();
+      const weekAgo = new Date(today.getTime() - 7*24*3600*1000);
+      const iso = d => d.toISOString().slice(0,10);
+      fetchEndEl.value   = iso(today);
+      fetchStartEl.value = iso(weekAgo);
+    })();
+
+    function appendLog(line, klass='') {
+      const el = document.createElement('div');
+      el.className = 'log-line ' + klass;
+      el.textContent = line;
+      fetchLog.appendChild(el);
+      fetchLog.scrollTop = fetchLog.scrollHeight;
+    }
+
+    // Parse a stat line from the ingest scripts to extract numbers.
+    // Examples:
+    //   "...DONE scanned=120 candidates=33 ... downloaded=8"
+    //   "...DONE scanned=88 new_meetings=15 ... downloaded=12"
+    function extractDownloaded(line) {
+      const m = line.match(/downloaded=(\d+)/);
+      return m ? parseInt(m[1], 10) : null;
+    }
+
+    fetchBtn.addEventListener('click', async () => {
+      const start = fetchStartEl.value;
+      const end   = fetchEndEl.value;
+      const srcSel= fetchSourceEl.value;
+      const max   = parseInt(fetchMaxEl.value || '0', 10) || 0;
+
+      if (!start || !end) { alert('Pick start and end dates.'); return; }
+      if (start > end) { alert('Start date must be before end date.'); return; }
+
+      const sources = srcSel === 'both' ? ['genesys','zoom'] : [srcSel];
+
+      fetchBtn.disabled = true;
+      fetchSummary.classList.remove('show');
+      fetchSummary.textContent = '';
+      fetchLog.innerHTML = '';
+      fetchLog.classList.add('show');
+      appendLog(`▶ Starting fetch — ${sources.join(' + ')} · ${start} → ${end}` +
+                (max ? ` · max ${max}/source` : ''),
+                'log-system');
+
+      const downloaded = { genesys: 0, zoom: 0 };
+      let mergeInfo = null;
+
+      try {
+        const resp = await fetch('/fetch_stream', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ sources, start, end, max_count: max }),
+        });
+        if (!resp.ok) {
+          const errBody = await resp.json().catch(() => ({}));
+          appendLog('✗ ' + (errBody.error || `HTTP ${resp.status}`), 'log-error');
+          fetchBtn.disabled = false;
+          return;
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = buf.indexOf('\n\n')) >= 0) {
+            const chunk = buf.slice(0, idx);
+            buf = buf.slice(idx + 2);
+            const dataLine = chunk.split('\n').find(l => l.startsWith('data: '));
+            if (!dataLine) continue;
+            let evt;
+            try { evt = JSON.parse(dataLine.slice(6)); } catch { continue; }
+
+            if (evt.event === 'start') {
+              // already announced
+            } else if (evt.event === 'source_start') {
+              appendLog(`── ${evt.source.toUpperCase()} ──`, 'log-system');
+            } else if (evt.event === 'log') {
+              const n = extractDownloaded(evt.line);
+              if (n !== null) downloaded[evt.source] = n;
+              appendLog(evt.line, 'log-' + evt.source);
+            } else if (evt.event === 'source_done') {
+              const tag = evt.exit_code === 0 ? '✓' : '✗';
+              const cls = evt.exit_code === 0 ? 'log-system' : 'log-error';
+              appendLog(`${tag} ${evt.source} done (exit ${evt.exit_code})`, cls);
+            } else if (evt.event === 'error') {
+              appendLog(`✗ ${evt.source}: ${evt.error}`, 'log-error');
+            } else if (evt.event === 'merge') {
+              mergeInfo = evt;
+              appendLog(`── MERGE ──`, 'log-system');
+              appendLog(`calls.csv: total=${evt.total} added=${evt.added} ` +
+                        `label_updates=${evt.label_updates} ` +
+                        `skipped_existing=${evt.skipped_existing}`,
+                        'log-system');
+            } else if (evt.event === 'done') {
+              const parts = sources.map(s =>
+                `${s}: ${downloaded[s]} new`).join(' · ');
+              const mergeLine = mergeInfo
+                ? ` · calls.csv: +${mergeInfo.added} rows (now ${mergeInfo.total} total` +
+                  (mergeInfo.label_updates ? `, ${mergeInfo.label_updates} label updates` : '') +
+                  `).`
+                : ' · merge step skipped.';
+              fetchSummary.textContent = `Fetch complete — ${parts}${mergeLine}`;
+              fetchSummary.classList.add('show');
+              appendLog('● All done.', 'log-system');
+            }
+          }
+        }
+      } catch (err) {
+        appendLog('✗ Request failed: ' + err.message, 'log-error');
+      } finally {
+        fetchBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

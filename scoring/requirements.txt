@@ -1,0 +1,30 @@
+# Phase 1 (ingest + inventory) runs on stdlib alone.
+# Install the rest when starting Phase 2:  pip install -r requirements.txt
+
+# Phase 2 — transcription
+faster-whisper>=1.0.3   # CTranslate2-backed Whisper; needs ffmpeg on PATH
+webvtt-py>=0.5          # parse Zoom VTT into segments
+
+# Phase 3 — diarization (Genesys mono only)
+# pyannote.audio>=3.1   # uncomment if Genesys diarization is needed
+
+# Phase 4 — LLM scoring
+anthropic>=0.40.0
+
+# Phase 5 — evaluation metrics
+pandas>=2.2
+numpy>=1.26
+scipy>=1.13
+scikit-learn>=1.4       # cohen_kappa_score (quadratic weighted)
+matplotlib>=3.8         # calibration + distribution plots
+
+# General
+tqdm>=4.66
+python-dotenv>=1.0
+
+# Phase 5 — Excel report
+openpyxl>=3.1
+
+# Web app (app/app.py — Flask)
+flask>=3.0
+openai>=1.40            # optional: only if using OpenAI Whisper API fallback
